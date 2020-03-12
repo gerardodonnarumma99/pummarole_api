@@ -67,11 +67,11 @@ class TimersRepository extends ServiceEntityRepository
 
         $conn = $this->getEntityManager()->getConnection();
 
-        $sql = 'SELECT * 
-        FROM timers 
-        WHERE user_id=:id
-        ORDER BY id DESC
-        LIMIT 1;
+        $sql = 'SELECT t.id,t.user_id,t.start_date,t.end_date,t.status,t.timer_type,type.duration
+        FROM timers as t,timer_type as type
+        WHERE t.timer_type=type.id AND user_id=1 
+        ORDER BY id 
+        DESC LIMIT 1;
         ';
         $stmt = $conn->prepare($sql);
         $stmt->execute(['id' => $id]);
