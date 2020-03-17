@@ -123,7 +123,7 @@ class PummaroleController extends AbstractController
         $result=$repository->getTimersFromUserId($id);
 
         if(!$result)
-           return new JsonResponse(null,204);
+           return new JsonResponse([],204);
 
         return new JsonResponse($result,200);
     }
@@ -195,6 +195,5 @@ class PummaroleController extends AbstractController
         catch(\Exception  $exception) {
             return new Response($exception->getMessage(), 400);
         }
-
     }
 }
