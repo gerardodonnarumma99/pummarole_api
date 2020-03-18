@@ -36,9 +36,9 @@ class TimerType
     private $description;
 
     /**
-     * @var int|null
+     * @var int
      *
-     * @ORM\Column(name="duration", type="integer", nullable=true)
+     * @ORM\Column(name="duration", type="integer", nullable=false)
      */
     private $duration;
 

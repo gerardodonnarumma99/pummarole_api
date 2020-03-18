@@ -76,6 +76,12 @@ class PummaroleController extends AbstractController
             $timerType=$repository->find($timerRequest['timer_type']);
             $timer->setTimerType($timerType);
 
+            //Title
+            $timer->setTitle($timerRequest['title']);
+
+            //Description
+            $timer->setDescription($timerRequest['description']);
+
             $entityManager = $this->getDoctrine()->getManager();
             $entityManager->persist($timer);
             $entityManager->flush();
