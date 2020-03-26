@@ -21,6 +21,7 @@ use Doctrine\Bundle\DoctrineBundle\Repository\UserEntityRepository;
 
 class PummaroleController extends AbstractController
 {
+
     /**
      * @param
      * @return Response
@@ -82,6 +83,13 @@ class PummaroleController extends AbstractController
             //Description
             $timer->setDescription($timerRequest['description']);
 
+            //Se è il primo timer della giornata lo marco primo
+            $repositoryTimers=$this->getDoctrine()->getRepository(Timers::class);
+            if($repositoryTimers->getTimerFirstDay($timerRequest['user_id']))
+                $timer->setFirstCycle('yes');
+            else
+                $timer->setFirstCycle($timerRequest['first_cycle']);
+
             $entityManager = $this->getDoctrine()->getManager();
             $entityManager->persist($timer);
             $entityManager->flush();
@@ -130,6 +138,45 @@ class PummaroleController extends AbstractController
 
         if(!$result)
            return new JsonResponse([],204);
+
+        return new JsonResponse($result,200);
+    }
+
+    /**
+     * @param $id
+     * @return JsonResponse
+     *
+     * @Route("/api/v1/tomatos/{id}", methods={"get"})
+     *
+     * @SWG\Get(
+     *      description="Recupera l'ultimo tomato dato l'id di un utente",
+     *      @SWG\Parameter(
+     *          name="id",
+     *          description="id dell'utente",
+     *          in="path",
+     *          type="integer",
+     *          required=true,
+     *      ),
+     *      @SWG\Response(
+     *          response=200,
+     *          description="Tomato trovato",
+     *          @SWG\Schema(ref=@Model(type=Timers::class))
+     *     ),
+     *      @SWG\Response(
+     *          response=400,
+     *          description="Tomato non trovato",
+     *     )
+     * )
+     * @SWG\Tag(name="Timers")
+     *
+     * */
+    public function getTomato(int $id,Request $request)
+    {
+        $repository=$this->getDoctrine()->getRepository(Timers::class);
+        $result=$repository->getTomatosFromUserId($id);
+
+        if(!$result)
+            return new JsonResponse([],204);
 
         return new JsonResponse($result,200);
     }
@@ -201,5 +248,146 @@ class PummaroleController extends AbstractController
         catch(\Exception  $exception) {
             return new Response($exception->getMessage(), 400);
         }
+    }
+
+    /**
+     * @param $id
+     * @return JsonResponse
+     *
+     * @Route("/api/v1/pomodoroCycle/{idUser}", methods={"get"})
+     *
+     * @SWG\Get(
+     *      description="Controlla se un dato utente ha un timer calcolabile e se ha completato un ciclo",
+     *      @SWG\Parameter(
+     *          name="idUser",
+     *          description="id dell'utente",
+     *          in="path",
+     *          type="integer",
+     *          required=true,
+     *      ),
+     *      @SWG\Response(
+     *          response=200,
+     *          description="Prossimo timer e il pomodoroCycle",
+     *          @SWG\Schema(ref=@Model(type=Timers::class))
+     *     ),
+     *      @SWG\Response(
+     *          response=204,
+     *          description="Prossimo timer non calcolabile",
+     *     )
+     * )
+     * @SWG\Tag(name="Timers")
+     *
+     * */
+    public function getStepCycle(int $idUser)
+    {
+        $cycle=[
+            ['type'=>'tomato',
+                'duration'=>"2"],
+            ['type'=>'pause',
+                'duration'=>"1"],
+            ['type'=>'tomato',
+                'duration'=>"2"],
+            ['type'=>'pause',
+                'duration'=>"1"],
+            ['type'=>'tomato',
+                'duration'=>"2"],
+            ['type'=>'pause',
+                'duration'=>"3"],
+        ];
+
+        $match=[];
+        $completeCycle=['pomodoroCycle'=>'true'];
+        $repository=$this->getDoctrine()->getRepository(Timers::class);
+        $result=$repository->getTomatosCycle($idUser);
+        $i=0;
+       
+        //Primo, ma broken
+        if(!$result)
+        {
+            array_push($match,$cycle[0]);
+            array_push($match,["pomodoroCycle"=>"false"]);
+
+            return new JsonResponse($match,200);    
+        }
+
+        foreach($result as $arrayResult)
+        {
+            if( ($i==0)&&($arrayResult['type']!=$cycle[$i]['type'])&&($arrayResult['duration']!=$cycle[$i]['duration']))
+            {
+                array_push($match,$cycle[0]);
+                break;
+            }
+            if( ($arrayResult['type']==$cycle[$i]['type'])&&($arrayResult['duration']==$cycle[$i]['duration']) )
+            {
+                $match=[];
+                if($i==count($cycle)-1&&$arrayResult['status']=='done')
+                {
+		            array_push($match,$cycle[0]);
+                    array_push($match,$completeCycle);
+                    break;
+                }
+                else if( ($arrayResult['status']=='done'||$arrayResult['status']=='doing')&&$i!=count($cycle)-1 )
+                {
+                    array_push($match,$cycle[$i+1]);
+                }
+                else if($i==count($cycle)-1&&$arrayResult['status']=='doing')
+                {
+                    array_push($match,$cycle[0]);
+                }
+            }
+            else{
+                $match=[];
+                break;
+            }
+            $i++;
+        }
+
+
+       if(count($match)==0)
+           return new JsonResponse([],204);
+
+       if($i!=count($cycle)-1)
+            array_push($match,["pomodoroCycle"=>"false"]);
+
+        return new JsonResponse($match,200);
+    }
+
+    /**
+     * @param $id
+     * @return JsonResponse
+     *
+     * @Route("/api/v1/lastEvent/{idUser}", methods={"get"})
+     *
+     * @SWG\Get(
+     *      description="Controlla gli ultimi task di un utente",
+     *      @SWG\Parameter(
+     *          name="idUser",
+     *          description="id dell'utente",
+     *          in="path",
+     *          type="integer",
+     *          required=true,
+     *      ),
+     *      @SWG\Response(
+     *          response=200,
+     *          description="Timer complieti o rotti",
+     *          @SWG\Schema(ref=@Model(type=Timers::class))
+     *     ),
+     *      @SWG\Response(
+     *          response=204,
+     *          description="Timer non trovati",
+     *     )
+     * )
+     * @SWG\Tag(name="Timers")
+     *
+     * */
+    public function getLastTimer(int $idUser)
+    {
+        $repository=$this->getDoctrine()->getRepository(Timers::class);
+        $result=$repository->getlastEvent($idUser);
+
+        if(!$result)
+            return new JsonResponse([],204);
+
+        return new JsonResponse($result,200);
     }
 }

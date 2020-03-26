@@ -72,6 +72,11 @@ class Timers
      */
     private $description;
 
+    /**
+     * @ORM\Column(type="string", length=3)
+     */
+    private $firstCycle;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -157,6 +162,18 @@ class Timers
     public function setDescription(string $description): self
     {
         $this->description = $description;
+
+        return $this;
+    }
+
+    public function getFirstCycle(): ?string
+    {
+        return $this->firstCycle;
+    }
+
+    public function setFirstCycle(string $firstCycle): self
+    {
+        $this->firstCycle = $firstCycle;
 
         return $this;
     }
