@@ -124,6 +124,25 @@ class TimersRepository extends ServiceEntityRepository
      * @param int $id
      * @return array
      */
+    public function getCycle(int $idUser): array {
+        $conn = $this->getEntityManager()->getConnection();
+
+        $sql = "SELECT type.type,type.duration,t.status
+                FROM timers as t,timer_type as type
+                WHERE t.timer_type=type.id AND user_id=:idUser AND t.status='done' AND t.id >= (SELECT id FROM timers WHERE first_cycle='yes' ORDER BY id DESC LIMIT 1)
+                ORDER BY t.id
+                ASC LIMIT 6";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute(['idUser' => $idUser]);
+
+        // returns an array of arrays (i.e. a raw data set)
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * @param int $id
+     * @return array
+     */
     public function getLastEvent(int $idUser): array {
         $conn = $this->getEntityManager()->getConnection();
 

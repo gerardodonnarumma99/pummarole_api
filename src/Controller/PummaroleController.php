@@ -254,7 +254,7 @@ class PummaroleController extends AbstractController
      * @param $id
      * @return JsonResponse
      *
-     * @Route("/api/v1/pomodoroCycle/{idUser}", methods={"get"})
+     * @Route("/api/v1/nextTimer/{idUser}", methods={"get"})
      *
      * @SWG\Get(
      *      description="Controlla se un dato utente ha un timer calcolabile e se ha completato un ciclo",
@@ -296,7 +296,6 @@ class PummaroleController extends AbstractController
         ];
 
         $match=[];
-        $completeCycle=['pomodoroCycle'=>'true'];
         $repository=$this->getDoctrine()->getRepository(Timers::class);
         $result=$repository->getTomatosCycle($idUser);
         $i=0;
@@ -304,36 +303,19 @@ class PummaroleController extends AbstractController
         //Primo, ma broken
         if(!$result)
         {
-            array_push($match,$cycle[0]);
-            array_push($match,["pomodoroCycle"=>"false"]);
-
-            return new JsonResponse($match,200);    
+            return new JsonResponse($cycle[0],200);    
         }
 
         foreach($result as $arrayResult)
         {
-            if( ($i==0)&&($arrayResult['type']!=$cycle[$i]['type'])&&($arrayResult['duration']!=$cycle[$i]['duration']))
+            if($i==count($cycle)-1)
             {
-                array_push($match,$cycle[0]);
-                break;
+                return new JsonResponse($cycle[0],200);
             }
             if( ($arrayResult['type']==$cycle[$i]['type'])&&($arrayResult['duration']==$cycle[$i]['duration']) )
             {
                 $match=[];
-                if($i==count($cycle)-1&&$arrayResult['status']=='done')
-                {
-		            array_push($match,$cycle[0]);
-                    array_push($match,$completeCycle);
-                    break;
-                }
-                else if( ($arrayResult['status']=='done'||$arrayResult['status']=='doing')&&$i!=count($cycle)-1 )
-                {
-                    array_push($match,$cycle[$i+1]);
-                }
-                else if($i==count($cycle)-1&&$arrayResult['status']=='doing')
-                {
-                    array_push($match,$cycle[0]);
-                }
+                array_push($match,$cycle[$i+1]);
             }
             else{
                 $match=[];
@@ -342,14 +324,79 @@ class PummaroleController extends AbstractController
             $i++;
         }
 
-
        if(count($match)==0)
            return new JsonResponse([],204);
 
-       if($i!=count($cycle)-1)
-            array_push($match,["pomodoroCycle"=>"false"]);
-
         return new JsonResponse($match,200);
+    }
+
+    /**
+     * @param $id
+     * @return JsonResponse
+     *
+     * @Route("/api/v1/pomodoroCycle/{idUser}", methods={"get"})
+     *
+     * @SWG\Get(
+     *      description="Controlla se un dato utente ha completato un ciclo",
+     *      @SWG\Parameter(
+     *          name="idUser",
+     *          description="id dell'utente",
+     *          in="path",
+     *          type="integer",
+     *          required=true,
+     *      ),
+     *      @SWG\Response(
+     *          response=200,
+     *          description="Ciclo completato",
+     *     ),
+     *      @SWG\Response(
+     *          response=204,
+     *          description="Ciclo non completato",
+     *     )
+     * )
+     * @SWG\Tag(name="Timers")
+     *
+     * */
+    public function getPomodoroCycle(int $idUser)
+    {
+        $cycle=[
+            ['type'=>'tomato',
+                'duration'=>"2"],
+            ['type'=>'pause',
+                'duration'=>"1"],
+            ['type'=>'tomato',
+                'duration'=>"2"],
+            ['type'=>'pause',
+                'duration'=>"1"],
+            ['type'=>'tomato',
+                'duration'=>"2"],
+            ['type'=>'pause',
+                'duration'=>"3"],
+        ];
+
+        $repository=$this->getDoctrine()->getRepository(Timers::class);
+        $result=$repository->getCycle($idUser);
+        $flag=false;
+        $i=0;
+    
+        if(count($result)!=6)
+            return new JsonResponse($flag,200);
+
+        foreach($result as $arrayResult)
+        {
+            if( ($arrayResult['type']==$cycle[$i]['type'])&&($arrayResult['duration']==$cycle[$i]['duration']) )
+            {
+                $flag=true;
+            }
+            else{
+                $flag=false;
+                break;
+            }
+
+            $i++;
+        }
+
+        return new JsonResponse($flag,200);
     }
 
     /**
