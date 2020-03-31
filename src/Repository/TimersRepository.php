@@ -146,7 +146,7 @@ class TimersRepository extends ServiceEntityRepository
     public function getLastEvent(int $idUser): array {
         $conn = $this->getEntityManager()->getConnection();
 
-        $sql = "SELECT t.start_date,type.duration,t.status,t.title,t.description
+        $sql = "SELECT t.start_date,type.duration,t.status,t.title,t.description,type.type
                 FROM timers as t,timer_type as type
                 WHERE t.timer_type=type.id AND user_id=:idUser AND t.status!='doing'
                 ORDER BY t.id

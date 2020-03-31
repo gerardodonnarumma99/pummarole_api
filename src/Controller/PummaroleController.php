@@ -303,14 +303,17 @@ class PummaroleController extends AbstractController
         //Primo, ma broken
         if(!$result)
         {
-            return new JsonResponse($cycle[0],200);    
+            array_push($match,$cycle[0]);
+            return new JsonResponse($match,200);    
         }
 
         foreach($result as $arrayResult)
         {
             if($i==count($cycle)-1)
             {
-                return new JsonResponse($cycle[0],200);
+                $match=[];
+                array_push($match,$cycle[0]);
+                return new JsonResponse($match,200);
             }
             if( ($arrayResult['type']==$cycle[$i]['type'])&&($arrayResult['duration']==$cycle[$i]['duration']) )
             {
